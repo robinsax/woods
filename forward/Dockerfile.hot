@@ -1,0 +1,5 @@
+FROM nginx:latest
+
+EXPOSE 9000
+
+COPY hot.conf /etc/nginx/conf.d/default.conf
