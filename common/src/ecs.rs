@@ -92,7 +92,7 @@ impl ECS {
         Vec::from(entity)
     }
 
-    pub fn get_components<T>(&mut self) -> Vec<(EntityId, &mut T)>
+    pub fn get_components_mut<T>(&mut self) -> Vec<(EntityId, &mut T)>
     where
         T: ComponentType
     {
@@ -107,6 +107,27 @@ impl ECS {
                 };
 
                 refs.push((eid.to_owned(), typed_cell.as_mut()));
+            }
+        }
+
+        refs
+    }
+
+    pub fn get_components<T>(&self) -> Vec<(EntityId, &T)>
+    where
+        T: ComponentType
+    {
+        let ctid = T::member_ctid();
+
+        let mut refs = Vec::new();
+        for (eid, component) in self.components.get(&ctid).unwrap() {
+            if let Some(cell) = component {
+                // SAFETY: Correct entity type invariant per write.
+                let typed_cell = unsafe {
+                    &*(cell as *const Box<dyn Component> as *const Box<T>)
+                };
+
+                refs.push((eid.to_owned(), typed_cell.as_ref()));
             }
         }
 

@@ -48,7 +48,8 @@ export const main = async () => {
                 const encoder = new TextEncoder();
                 const decoder = new TextDecoder();
                 const updatedSource = decoder.decode(statics[fn])
-                    .replace('client_bg.wasm', 'http://localhost/static/client_bg.wasm');
+                    .replace('client_bg.wasm', 'http://localhost/static/client_bg.wasm')
+                    .replace('renderer_bg.wasm', 'http://localhost/static/renderer_bg.wasm');
 
                 statics[fn] = new Uint8Array(encoder.encode(updatedSource));
             }

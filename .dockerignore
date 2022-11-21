@@ -1,6 +1,7 @@
 client/target/
 common/target/
 server/target/
+renderer/target/
 tmp/
 .vscode/
 front/built/

@@ -1,4 +1,6 @@
 /* @jsx h */
+import init, { main as rendererMain } from './built/renderer';
+
 import { FunctionComponent, render, h } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 
@@ -41,6 +43,7 @@ const useBinding = (): [Entity[], Dispatcher] => {
 
     useEffect(() => {
         const handleState = (event: MessageEvent) => {
+            return;
             const payload = JSON.parse(event.data);
 
             const parseComponent = (entity: Entity, comp: object) => {
@@ -83,6 +86,10 @@ const useBinding = (): [Entity[], Dispatcher] => {
     return [entities, dispatcher];
 };
 
+const project = ({ x, y, z }) => {
+    return { x, y, z };
+};
+
 const View: FunctionComponent<{}> = () => {
     const [entities, dispatcher] = useBinding();
 
@@ -104,12 +111,12 @@ const View: FunctionComponent<{}> = () => {
 
     return (
         <svg>
-            { entities.map((entity, i) => (
+            { entities.map((entity) => (
                 entity.body &&
                 <rect
                     key={ entity.id }
-                    x={ entity.body.x }
-                    y={ entity.body.y }
+                    x={ project(entity.body).x }
+                    y={ project(entity.body).y }
                     width={ 10 }
                     height={ 10 }
                 />
@@ -118,8 +125,10 @@ const View: FunctionComponent<{}> = () => {
     )
 };
 
-const main = () => {
+const main = async () => {
     new Worker('/static/worker.js');
+
+    init().then(() => rendererMain());
 
     const mount = document.querySelector('#mount');
     if (!mount) throw new Error('no mount');

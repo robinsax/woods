@@ -18,6 +18,9 @@ function prefix_client() {
 function prefix_server() {
     prefix 6 "server"
 }
+function prefix_renderer() {
+    prefix 7 "renderer"
+}
 
 deps_fail=false
 
@@ -64,7 +67,10 @@ mkdir front/built &> /dev/null
 if [[ $1 == "" ]]; then
     tmux \
         new-session  './run_hot.sh server' \; \
-        split-window './run_hot.sh client' \; \
+        split-window -h './run_hot.sh client' \; \
+        select-pane -L \; \
+        split-window './run_hot.sh renderer' \; \
+        select-pane -R \; \
         split-window './run_hot.sh front' \; \
         split-window -h './run_hot.sh forward'
 elif [[ $1 == "forward" ]]; then
@@ -129,6 +135,18 @@ elif [[ $1 == "client" ]]; then
 
     while true; do
         echo "rebuild client" | prefix_client
+
+        wasm-pack build --target web --debug --out-dir ../front/built
+
+        inotifywait -e modify -e move -e create -e delete -e attrib -r . --exclude=target
+    done
+elif [[ $1 == "renderer" ]]; then
+    pushd ./renderer &> /dev/null
+
+    echo "booting renderer hot" | prefix_renderer
+
+    while true; do
+        echo "rebuild renderer" | prefix_renderer
 
         wasm-pack build --target web --debug --out-dir ../front/built
 

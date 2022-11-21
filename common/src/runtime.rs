@@ -1,3 +1,6 @@
+#[cfg(feature = "client-utils")]
+use std::cell::RefCell;
+
 use serde::{Serialize, Deserialize};
 use log::info;
 
@@ -18,7 +21,8 @@ pub enum RuntimeMessage {
 #[derive(PartialEq, Debug)]
 pub enum RuntimeRole {
     Master,
-    Client
+    Intermediate,
+    Renderer
 }
 
 pub trait RuntimeIo
@@ -26,7 +30,7 @@ where
     Self: Send + Sync
 {
     fn rx(&self) -> (Vec<Input>, Vec<RuntimeMessage>);
-    fn tx(&self, message: RuntimeMessage);
+    fn tx(&self, message: RuntimeMessage, explicit_down: bool);
 }
 
 pub struct Runtime {
@@ -41,9 +45,9 @@ impl Runtime {
         let mut systems: Vec<Box<dyn ComponentSystem>> = Vec::new();
         systems.push(Box::new(PhysicsSystem::new()));
 
-        if role == RuntimeRole::Client {
+        if role == RuntimeRole::Intermediate {
             info!("request load");
-            io.tx(RuntimeMessage::NeedLoad);
+            io.tx(RuntimeMessage::NeedLoad, false);
         }
 
         Self {
@@ -52,6 +56,11 @@ impl Runtime {
             systems,
             ecs: ECS::new()
         }
+    }
+
+    #[cfg(feature = "client-utils")]
+    pub fn new_static_cell(io: &'static dyn RuntimeIo, role: RuntimeRole) -> &'static RefCell<Self> {
+        Box::leak(Box::new(RefCell::new(Self::new(io, role))))
     }
 
     pub fn systems_tick(&mut self, dt: f64) {
@@ -68,7 +77,7 @@ impl Runtime {
             self.apply_message(message.clone());
 
             if self.role == RuntimeRole::Master {
-                self.io.tx(message);
+                self.io.tx(message, false);
             }
         }
     }
@@ -86,8 +95,8 @@ impl Runtime {
 
             self.apply_message(message.clone());
 
-            if self.role == RuntimeRole::Client {
-                self.io.tx(RuntimeMessage::Input(input));
+            if self.role == RuntimeRole::Intermediate {
+                self.io.tx(RuntimeMessage::Input(input), false);
             }
         }
     }
@@ -104,6 +113,17 @@ impl Runtime {
 
     // TODO: Roll based control (and other validation obviously).
     fn apply_message(&mut self, message: RuntimeMessage) {
+        match &message {
+            RuntimeMessage::Load(..) |
+            RuntimeMessage::EntityCreate(..) |
+            RuntimeMessage::ComponentUpdate(..) => {
+                if self.role == RuntimeRole::Intermediate {
+                    self.io.tx(message.clone(), true);
+                }
+            },
+            _ => {}
+        }
+
         match message {
             RuntimeMessage::Input(input) => {
                 // TODO: Flow is super messed up.
@@ -119,7 +139,7 @@ impl Runtime {
                     provision.push((eid.to_owned(), self.ecs.get_entity_anys(eid.to_owned())));
                 }
 
-                self.io.tx(RuntimeMessage::Load(provision));
+                self.io.tx(RuntimeMessage::Load(provision), false);
             },
             RuntimeMessage::Load(entities) => {
                 for (eid, any_components) in entities.into_iter() {
@@ -137,5 +157,9 @@ impl Runtime {
 
     pub fn ecs(&self) -> &ECS {
         &self.ecs
+    }
+
+    pub fn ecs_mut(&mut self) -> &mut ECS {
+        &mut self.ecs
     }
 }

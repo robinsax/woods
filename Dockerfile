@@ -1,13 +1,16 @@
-# Client
-FROM rust:1.63.0 AS client_build_base
+# Client and renderer
+FROM rust:1.63.0 AS wasm_build_base
 
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | bash
 
 WORKDIR /build
 
 RUN mkdir client && \
-    mkdir common
+    mkdir common && \
+    mkdir renderer
 
+COPY renderer/Cargo.toml renderer
+COPY renderer/Cargo.lock renderer
 COPY client/Cargo.toml client
 COPY client/Cargo.lock client
 COPY common/Cargo.toml common
@@ -19,12 +22,16 @@ RUN cd common && \
     cd ../client && \
     mkdir src && \
     echo "fn main() {}" > src/lib.rs && \
+    cargo build && \
+    cd ../renderer && \
+    mkdir src && \
+    echo "fn main() {}" > src/lib.rs && \
     cargo build
 
 RUN cd client && \
     wasm-pack build
 
-FROM client_build_base AS client_build
+FROM wasm_build_base AS client_build
 
 WORKDIR /build
 
@@ -37,6 +44,24 @@ COPY common ./common
 RUN mkdir /output && \
     touch common/src/lib.rs && \
     cd client && \
+    touch src/lib.rs && \
+    # For error visibility
+    cargo check && \
+    wasm-pack build --verbose --target web --debug --out-dir /output
+
+FROM wasm_build_base AS renderer_build
+
+WORKDIR /build
+
+RUN rm -rf renderer/src && \
+    rm -rf common/src
+
+COPY renderer ./renderer
+COPY common ./common
+
+RUN mkdir /output && \
+    touch common/src/lib.rs && \
+    cd renderer && \
     touch src/lib.rs && \
     # For error visibility
     cargo check && \

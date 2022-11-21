@@ -15,8 +15,18 @@
             svg {
                 width: 100vw;
                 height: 100vh;
-                background-color: rgb(26, 26, 26);
+                background-color: rgb(25, 25, 25);
                 overflow: hidden;
+            }
+
+            canvas {
+                width: 100vw;
+                height: 100vh;
+                position: fixed;
+                z-index: 1;
+                top: 0px;
+                left: 50%;
+                transform: translateX(-50%);
             }
 
             rect {
@@ -26,6 +36,7 @@
     </head>
     <body>
         <div id="mount"></div>
+        <canvas id="canvas"></canvas>
         <script src="/static/window.js"></script>
     </body>
 </html>

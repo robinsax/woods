@@ -137,7 +137,7 @@ impl RuntimeIo for WsRuntimeIo {
         (Vec::new(), inner_impl.rx())
     }
 
-    fn tx(&self, message: RuntimeMessage) {
+    fn tx(&self, message: RuntimeMessage, _: bool) {
         let mut inner_impl = self.inner.lock().expect("poison");
 
         inner_impl.tx(message);
