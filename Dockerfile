@@ -88,6 +88,7 @@ COPY front/* ./
 RUN mkdir built
 
 COPY --from=client_build /output/* built/
+COPY --from=renderer_build /output/* built/
 
 RUN deno run \
         --allow-run \

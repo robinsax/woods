@@ -12,8 +12,7 @@ use common::{js_fn_into, js_fn, js_fn_leak, global_scope, init_console_logging, 
 use common::runtime::{Runtime, RuntimeRole};
 
 mod renderer;
-mod shader;
-mod mem;
+mod proxies;
 mod io;
 mod primitives;
 
